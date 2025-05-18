@@ -7,457 +7,765 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 
-// Sample user and revenue
-$user = htmlspecialchars($_SESSION['user']);
-$revenue = 15420.75;
-
-// Set up the database connection
+// Database connection
 $servername = "localhost";
 $username = "root";
-$password = ""; // Or your actual password
-$database = "medlog"; // Your actual DB name
+$password = "";
+$database = "medlog";
 
-// Create connection
 $conn = new mysqli($servername, $username, $password, $database);
 
-// Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Check if prescriptions are already in the session
-if (!isset($_SESSION['prescriptions'])) {
-    // Fetch prescriptions from a database (or real-time source)
-    $query = "SELECT patient_name, medicine, dosage FROM prescriptions"; // Adjust query as per your actual table structure
-    $result = mysqli_query($conn, $query);
+// Get total unique patients
+$query = "SELECT COUNT(DISTINCT patient_name) as total_patients FROM prescriptions";
+$result = $conn->query($query);
+$total_patients = $result->fetch_assoc()['total_patients'];
 
-    $prescriptions = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $prescriptions[] = [$row['patient_name'], $row['medicine'], $row['dosage']];
-    }
-
-    // If no prescriptions are found, set an empty array
-    if (empty($prescriptions)) {
-        $prescriptions = [];
-    }
-
-    // Store the real-time prescriptions in the session
-    $_SESSION['prescriptions'] = $prescriptions;
-}
-
-// Handle add‐prescription form
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['patient'], $_POST['medicine'], $_POST['dosage'])) {
-    $patient  = htmlspecialchars($_POST['patient']);
-    $medicine = htmlspecialchars($_POST['medicine']);
-    $dosage   = htmlspecialchars($_POST['dosage']);
-    array_unshift($_SESSION['prescriptions'], [$patient, $medicine, $dosage]);
-}
-
-// query to get today's appointments
+// Get today's appointments
 $today = date('Y-m-d');
-$query = "SELECT * FROM appointments WHERE appointment_date = '$today'";
-$result = mysqli_query($conn, $query);
-$appointmentsToday = mysqli_fetch_all($result, MYSQLI_ASSOC);
+$query = "SELECT COUNT(*) as total_appointments FROM appointments WHERE appointment_date = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("s", $today);
+$stmt->execute();
+$result = $stmt->get_result();
+$appointments_today = $result->fetch_assoc()['total_appointments'];
 
+// Get total stocks from inventory
+$query = "SELECT SUM(quantity) as total_stocks FROM inventory";
+$result = $conn->query($query);
+$total_stocks = $result->fetch_assoc()['total_stocks'] ?? 0;
 
+// Get pending orders
+$query = "SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending'";
+$result = $conn->query($query);
+$pending_orders = $result->fetch_assoc()['pending_orders'] ?? 0;
 
+// Get weekly appointments for chart
+$weekStart = date('Y-m-d', strtotime('monday this week'));
+$weekEnd = date('Y-m-d', strtotime('sunday this week'));
+$query = "SELECT DATE(appointment_date) as date, COUNT(*) as count 
+          FROM appointments 
+          WHERE appointment_date BETWEEN ? AND ?
+          GROUP BY DATE(appointment_date)
+          ORDER BY date";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("ss", $weekStart, $weekEnd);
+$stmt->execute();
+$weeklyData = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-
-
-$prescriptions = $_SESSION['prescriptions'];
+// Get recent prescriptions
+$query = "SELECT * FROM prescriptions ORDER BY created_at DESC LIMIT 5";
+$result = $conn->query($query);
+$recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard</title>
-  <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    background: #f5f5f5;
-    display: flex;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MediSync Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --background-color: #f8f9fa;
+            --text-color: #2c3e50;
+        }
 
-  .sidebar {
-    width: 250px;
-    background: #4b7c67;
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    padding: 20px;
-    color: white;
-    transition: transform 0.3s;
-  }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background-color);
+            color: var(--text-color);
+        }
 
-  .sidebar.hidden {
-    transform: translateX(-100%);
-  }
+        .sidebar {
+            background: var(--primary-color);
+            min-height: 100vh;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
 
-  .sidebar h3 {
-    margin: 0 0 30px;
-    color: black;
-  }
+        .sidebar .nav-link {
+            color: #fff;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
 
-  .sidebar a {
-    color: white;
-    text-decoration: none;
-    margin-bottom: 20px;
-    display: block;
-  }
+        .sidebar .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
 
-  .main-content {
-    margin-left: 250px;
-    flex: 1;
-    transition: margin-left 0.3s;
-  }
+        .sidebar .nav-link.active {
+            background: var(--secondary-color);
+        }
 
-  .main-content.full {
-    margin-left: 0;
-  }
+        .main-content {
+            padding: 2rem;
+        }
 
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 10px 20px;
-    background: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 1001;
-  }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
 
-  .burger {
-    font-size: 24px;
-    cursor: pointer;
-  }
+        .card:hover {
+            transform: translateY(-5px);
+        }
 
-  .dashboard-title {
-    font-size: 20px;
-    font-weight: bold;
-    color: #333;
-  }
+        .stat-card {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
 
-  .search-bar {
-    padding: 5px 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
+        .stat-card .icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    padding: 20px;
-  }
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
 
-  .card {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
+        .table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+        }
 
-  .status {
-    font-size: 14px;
-  }
+        .table thead {
+            background: var(--primary-color);
+            color: white;
+        }
 
-  .status.red {
-    color: red;
-  }
+        .btn-primary {
+            background: var(--secondary-color);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+        }
 
-  .weekly-chart {
-    background: #fff;
-    padding: 20px;
-    margin: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
+        .search-bar {
+            border-radius: 20px;
+            padding: 0.8rem 1.5rem;
+            border: 1px solid #ddd;
+            width: 300px;
+        }
 
-  th, td {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    text-align: left;
-  }
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
 
-  th {
-    background: #444;
-    color: white;
-  }
+        .status-badge.success {
+            background-color: #2ecc71;
+            color: white;
+        }
 
-  .delete-btn {
-    background: red;
-    color: #fff;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
+        .status-badge.warning {
+            background-color: #f1c40f;
+            color: white;
+        }
 
-  .logout-button {
-    margin: 20px;
-    text-align: right;
-  }
+        .status-badge.danger {
+            background-color: #e74c3c;
+            color: white;
+        }
 
-  .logout-button button {
-    padding: 10px 20px;
-    background: green;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
+        .avatar-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
 
-  form input {
-    margin-right: 10px;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
+        .table > :not(caption) > * > * {
+            padding: 1rem;
+        }
 
-  form button {
-    padding: 8px 16px;
-    background: #4b7c67;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-</style>
+        .table tbody tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+        }
+
+        .btn-group .btn {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .modal-header {
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+
+        .input-group-text {
+            background-color: #f8f9fa;
+            border-right: none;
+        }
+
+        .form-control, .form-select {
+            border-left: none;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #dee2e6;
+            box-shadow: none;
+        }
+
+        .input-group:focus-within {
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .input-group:focus-within .input-group-text,
+        .input-group:focus-within .form-control,
+        .input-group:focus-within .form-select {
+            border-color: #3498db;
+        }
+    </style>
 </head>
 <body>
-  <div class="sidebar" id="sidebar">
-    <h3>NBSC<br>MediSync</h3>
-    <a href="#">Dashboard</a>
-    <a href="#">Medicine Inventory</a>
-    <a href="#">Prescription Management</a>
-    <a href="#">Orders & Supplier</a>
-    <a href="#">Reports & Analytics</a>
-    <a href="#">Settings</a>
-  </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <h3 class="text-white mb-4">MediSync</h3>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="dashboard.php">
+                        <i class="fas fa-home me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="inventory.php">
+                        <i class="fas fa-pills me-2"></i>Inventory
+                    </a>
+                    <a class="nav-link" href="prescriptions.php">
+                        <i class="fas fa-prescription me-2"></i>Prescriptions
+                    </a>
+                    <a class="nav-link" href="orders.php">
+                        <i class="fas fa-truck me-2"></i>Orders
+                    </a>
+                    <a class="nav-link" href="reports.php">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link text-danger mt-4" href="logout.php">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
 
-  <div class="main-content" id="main">
-    <div class="header">
-      <span class="burger" onclick="toggleSidebar()">&#9776;</span>
-      <h2>Dashboard</h2>
-      <input type="text" class="search-bar" placeholder="Search">
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Dashboard</h2>
+                    <div class="d-flex align-items-center">
+                        <input type="text" class="search-bar me-3" placeholder="Search...">
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Total Patients</h6>
+                                        <h3><?= $total_patients ?></h3>
+                                    </div>
+                                    <i class="fas fa-users icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Today's Appointments</h6>
+                                        <h3><?= $appointments_today ?></h3>
+                                    </div>
+                                    <i class="fas fa-calendar-check icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Total Stocks</h6>
+                                        <h3><?= number_format($total_stocks) ?></h3>
+                                    </div>
+                                    <i class="fas fa-pills icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Pending Orders</h6>
+                                        <h3><?= $pending_orders ?></h3>
+                                    </div>
+                                    <i class="fas fa-shopping-cart icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts and Tables -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="chart-container mb-4">
+                            <h4>Weekly Appointments</h4>
+                            <canvas id="weeklyAppointmentsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Prescriptions Section -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h4 class="mb-0">Recent Prescriptions</h4>
+                                <p class="text-muted mb-0">Manage your recent prescriptions</p>
+                            </div>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPrescriptionModal">
+                                <i class="fas fa-plus me-2"></i>Add New Prescription
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Patient Name</th>
+                                        <th>Medicine</th>
+                                        <th>Dosage</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($recent_prescriptions as $prescription): ?>
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle bg-primary text-white me-2">
+                                                    <?= strtoupper(substr($prescription['patient_name'], 0, 1)) ?>
+                                                </div>
+                                                <?= htmlspecialchars($prescription['patient_name']) ?>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-pills me-1"></i>
+                                                <?= htmlspecialchars($prescription['medicine']) ?>
+                                            </span>
+                                        </td>
+                                        <td><?= htmlspecialchars($prescription['dosage']) ?></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-calendar-alt text-muted me-2"></i>
+                                                <?= date('M d, Y', strtotime($prescription['created_at'])) ?>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-primary" onclick="editPrescription(<?= $prescription['id'] ?>)" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="deletePrescription(<?= $prescription['id'] ?>)" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <?php
-// Ensure $prescriptions is defined before this
-$patientNames = array_map(fn($pres) => $pres[0], $prescriptions ?? []);
-$totalPatients = count(array_unique($patientNames));
-?>
-
-<div class="grid">
-  <div class="card">
-    <h3>Total Patients</h3>
-    <p style="font-size:24px;"><?= $totalPatients ?></p>
-    <p class="status">🔼 1% from last month</p>
-  </div>
-      <div class="card">
-        <h3>Today's Appointments</h3>
-        <p style="font-size:24px;"><?= count($appointmentsToday) ?></p>
-        <p class="status red">🔽 2% from yesterday</p> <!-- Optional: Add dynamic trend logic -->
-      </div>
-
-      <div class="card">
-        <h3>Pending Prescriptions</h3>
-        <p style="font-size:24px;">0</p>
-        <p class="status" style="color:orange;">⚠️ Needs attention</p>
-      </div>
-      <div class="card">
-  <h3>Revenue</h3>
-  <p id="revenueDisplay" style="font-size:24px;">₱<?= number_format($revenue, 2) ?></p>
-  <p class="status">💰 Updated real-time</p>
-</div>
-
-    
-
-
-
-
-    <div class="card">
-  <h3>New Patients This Week</h3>
-  <p id="newPatientsCount" style="font-size:24px;"><?= count($prescriptions) ?></p>
-  <p class="status">🆕 Growing steadily</p>
-</div>
-
-
-<!-- Additional KPIs -->
-
-<div class="card">
-    <h3>Total Medicine Inventory</h3>
-    <p style="font-size:24px;">0</p>
-    <p class="status">🧪 Inventory monitored</p>
-  </div>
-  <div class="card">
-    <h3>Out of Stock</h3>
-    <p style="font-size:24px;">0</p>
-    <p class="status red">❗ Reorder Needed</p>
-  </div>
-
-
-  <div class="card">
-    <h3>Supplier Orders This Month</h3>
-    <p style="font-size:24px;">0</p>
-    <p class="status">📦 All received</p>
-  </div>
-</div>
-
-
-
-
-
-
-
-    <div class="weekly-chart">
-      <h3>Weekly Appointments</h3>
-      <canvas id="weeklyAppointmentsChart" style="width:100%; height:200px;"></canvas>
+    <!-- Add Prescription Modal -->
+    <div class="modal fade" id="addPrescriptionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Add New Prescription
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addPrescriptionForm" method="POST">
+                        <input type="hidden" name="action" value="add">
+                        <div class="mb-3">
+                            <label class="form-label">Patient Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" name="patient_name" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Medicine</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-pills"></i></span>
+                                <select class="form-select" name="medicine" required>
+                                    <option value="">Select Medicine</option>
+                                    <?php
+                                    $query = "SELECT medicine_name FROM inventory WHERE quantity > 0 ORDER BY medicine_name";
+                                    $result = $conn->query($query);
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option value='" . htmlspecialchars($row['medicine_name']) . "'>" . 
+                                             htmlspecialchars($row['medicine_name']) . "</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Dosage</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-syringe"></i></span>
+                                <input type="text" class="form-control" name="dosage" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save me-2"></i>Save Prescription
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div style="padding:20px;">
-      <h3>Recent Prescriptions</h3>
-      <form method="POST" style="margin-bottom:20px;">
-        <input type="text" name="patient" placeholder="Patient" required>
-        <input type="text" name="medicine" placeholder="Medicine" required>
-        <input type="text" name="dosage" placeholder="Dosage" required>
-        <button type="submit">Add Prescription</button>
-      </form>
-
-      <table id="prescriptionsTable">
-        <tr>
-          <th>Patient</th>
-          <th>Medicine</th>
-          <th>Dosage</th>
-          <th>Action</th>
-        </tr>
-        <?php foreach ($prescriptions as $idx => $pres): ?>
-          <tr data-index="<?= $idx ?>">
-            <td><?= htmlspecialchars($pres[0]) ?></td>
-            <td><?= htmlspecialchars($pres[1]) ?></td>
-            <td><?= htmlspecialchars($pres[2]) ?></td>
-            <td>
-              <button class="delete-btn" onclick="deletePrescription(<?= $idx ?>)">Delete</button>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-      </table>
+    <!-- Edit Prescription Modal -->
+    <div class="modal fade" id="editPrescriptionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>Edit Prescription
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editPrescriptionForm" method="POST">
+                        <input type="hidden" name="action" value="edit">
+                        <input type="hidden" name="id" id="edit_id">
+                        <div class="mb-3">
+                            <label class="form-label">Patient Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" name="patient_name" id="edit_patient_name" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Medicine</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-pills"></i></span>
+                                <select class="form-select" name="medicine" id="edit_medicine" required>
+                                    <?php
+                                    $query = "SELECT medicine_name FROM inventory WHERE quantity > 0 ORDER BY medicine_name";
+                                    $result = $conn->query($query);
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option value='" . htmlspecialchars($row['medicine_name']) . "'>" . 
+                                             htmlspecialchars($row['medicine_name']) . "</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Dosage</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-syringe"></i></span>
+                                <input type="text" class="form-control" name="dosage" id="edit_dosage" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save me-2"></i>Update Prescription
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="logout-button">
-      <button onclick="location.href='logout.php'">Exit</button>
-    </div>
-  </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Weekly Appointments Chart
+        const ctx = document.getElementById('weeklyAppointmentsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Appointments',
+                    data: [20, 18, 22, 25, 24, 15, 10],
+                    borderColor: '#3498db',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('hidden');
-      document.getElementById('main').classList.toggle('full');
-    }
+        // Add Prescription Form Handler
+        document.getElementById('addPrescriptionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            
+            // Disable submit button and show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+            
+            fetch('add_prescription.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addPrescriptionModal'));
+                    modal.hide();
+                    
+                    // Show success toast
+                    const toast = document.createElement('div');
+                    toast.className = 'position-fixed bottom-0 end-0 p-3';
+                    toast.style.zIndex = '11';
+                    toast.innerHTML = `
+                        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header bg-success text-white">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong class="me-auto">Success</strong>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                            </div>
+                            <div class="toast-body">
+                                ${data.message}
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(toast);
+                    
+                    // Remove toast after 3 seconds
+                    setTimeout(() => {
+                        toast.remove();
+                        location.reload();
+                    }, 3000);
+                } else {
+                    // Show error message
+                    alert(data.message || 'Failed to add prescription');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding the prescription');
+            })
+            .finally(() => {
+                // Reset submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Prescription';
+            });
+        });
 
-    // Chart.js setup
-    const ctx = document.getElementById('weeklyAppointmentsChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-        datasets: [{ label:'Appointments', data:[20,18,22,25,24,15,10], backgroundColor:'#4b7c67' }]
-      },
-      options: { responsive:true, plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:5 }}}}
-    });
+        // Edit Prescription Function
+        function editPrescription(id) {
+            // Show loading state
+            const editButton = event.currentTarget;
+            const originalContent = editButton.innerHTML;
+            editButton.disabled = true;
+            editButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
- // AJAX delete
-function deletePrescription(idx) {
-  const row = document.querySelector(`tr[data-index="${idx}"]`);
+            fetch('get_prescription.php?id=' + id)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('edit_id').value = data.prescription.id;
+                        document.getElementById('edit_patient_name').value = data.prescription.patient_name;
+                        document.getElementById('edit_medicine').value = data.prescription.medicine;
+                        document.getElementById('edit_dosage').value = data.prescription.dosage;
+                        
+                        new bootstrap.Modal(document.getElementById('editPrescriptionModal')).show();
+                    } else {
+                        // Show error toast
+                        showToast('error', data.message || 'Failed to fetch prescription details');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'An error occurred while fetching prescription details');
+                })
+                .finally(() => {
+                    // Reset button state
+                    editButton.disabled = false;
+                    editButton.innerHTML = originalContent;
+                });
+        }
 
-  fetch('delete_prescription.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'delete_index=' + encodeURIComponent(idx)
-  })
-  .then(res => res.json())
-  .then(json => {
-    if (json.success) {
-      row.remove(); // Remove the prescription row from the table
+        // Edit Prescription Form Handler
+        document.getElementById('editPrescriptionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            
+            // Disable submit button and show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+            
+            fetch('update_prescription.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editPrescriptionModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    showToast('success', data.message || 'Prescription updated successfully');
+                    
+                    // Reload the page after a short delay
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('error', data.message || 'Failed to update prescription');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'An error occurred while updating the prescription');
+            })
+            .finally(() => {
+                // Reset submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Update Prescription';
+            });
+        });
 
-      // Optionally, if you're calculating revenue, update the total revenue
-      let total = 0;
-      document.querySelectorAll('#prescriptionsTable tr[data-price]').forEach(row => {
-        total += parseFloat(row.getAttribute('data-price')) || 0;
-      });
-      
-      const revenueEl = document.getElementById('revenueDisplay'); // Assuming you have a revenue display element
-      revenueEl.textContent = `₱${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        // Delete Prescription Function
+        function deletePrescription(id) {
+            if (confirm('Are you sure you want to delete this prescription?')) {
+                const deleteButton = event.currentTarget;
+                const originalContent = deleteButton.innerHTML;
+                deleteButton.disabled = true;
+                deleteButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-      // Decrease the New Patients count after deleting a prescription
-      const countEl = document.getElementById('newPatientsCount');
-      countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1); // Decrease patient count
-    } else {
-      alert('Failed to delete');
-    }
-  })
-  .catch(() => alert('Error deleting'));
-}
+                fetch('delete_prescription.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'id=' + id
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', data.message || 'Prescription deleted successfully');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showToast('error', data.message || 'Failed to delete prescription');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'An error occurred while deleting the prescription');
+                })
+                .finally(() => {
+                    deleteButton.disabled = false;
+                    deleteButton.innerHTML = originalContent;
+                });
+            }
+        }
 
-
-
-
-// Real-time add prescription and update card
-document.querySelector('form').addEventListener('submit', function(e) {
-  e.preventDefault();
-
-  const formData = new FormData(this);
-
-  fetch('', { // Make a POST request to add a new prescription
-    method: 'POST',
-    body: formData
-  })
-  .then(() => {
-    const table = document.getElementById('prescriptionsTable');
-    const newRow = table.insertRow(1); // Insert a new row after the header
-
-    const patient = formData.get('patient');
-    const medicine = formData.get('medicine');
-    const dosage = formData.get('dosage');
-    const index = table.rows.length - 2; // Approximate new index for the row
-
-    newRow.setAttribute('data-index', index);
-    newRow.innerHTML = `
-      <td>${patient}</td>
-      <td>${medicine}</td>
-      <td>${dosage}</td>
-      <td><button class="delete-btn" onclick="deletePrescription(${index})">Delete</button></td>
-    `;
-
-    // Update New Patients Count
-    const countEl = document.getElementById('newPatientsCount');
-    countEl.textContent = parseInt(countEl.textContent) + 1; // Increment the count
-
-    // Optionally, update Total Patients count (if the patient is unique)
-    const totalPatientsCountEl = document.getElementById('totalPatientsCount');
-    totalPatientsCountEl.textContent = parseInt(totalPatientsCountEl.textContent) + 1;
-
-    this.reset(); // Clear form fields after submission
-  })
-  .catch(() => alert("Failed to add prescription"));
-});
-
-
-
-
-
-  </script>
+        // Toast notification function
+        function showToast(type, message) {
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed bottom-0 end-0 p-3';
+            toast.style.zIndex = '11';
+            
+            const bgColor = type === 'success' ? 'bg-success' : 'bg-danger';
+            const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+            
+            toast.innerHTML = `
+                <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header ${bgColor} text-white">
+                        <i class="fas fa-${icon} me-2"></i>
+                        <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
 </body>
 </html>
