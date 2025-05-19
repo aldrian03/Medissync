@@ -48,34 +48,62 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #439b7b;
+            --primary-dark: #020c1b;
+            --primary-light: #112240;
+            --secondary-color: #20b2aa;
+            --accent-color: #64ffda;
+            --success-color: #20b2aa;
+            --warning-color: #ffd166;
+            --danger-color: #ef4444;
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            --gradient-secondary: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #fdf8e5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
+            background: var(--gradient-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center; 
+            height: 100vh;
             flex-direction: column;
         }
 
         .register-container {
-            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             width: 100%;
             max-width: 1000px;
-            border-radius: 20px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            box-shadow: var(--hover-shadow);
+            padding: 40px;
+            margin: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .register-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
         }
 
         .register-box {
             width: 100%;
-            padding: 30px;
+            padding: 40px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -83,42 +111,71 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .register-box h2 {
-            font-size: 26px;
-            font-weight: bold;
-            color: rgb(66, 121, 155);
-            margin-bottom: 20px;
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 30px;
             text-align: center;
+            letter-spacing: -0.5px;
         }
 
-        .register-box p {
-            color: red;
+        .register-box p.error {
+            color: var(--danger-color);
             font-size: 14px;
-            text-align: center;
+            margin: 5px 0;
+            padding: 10px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid var(--danger-color);
         }
 
-        input {
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="email"],
+        input[type="password"] {
             width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            padding: 14px 16px;
+            margin: 8px 0 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
             box-sizing: border-box;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: var(--background-color);
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 155, 123, 0.1);
+            background: #fff;
         }
 
         button {
             width: 100%;
-            padding: 12px;
-            background-color: rgb(80, 156, 124);
+            padding: 14px;
+            background: var(--gradient-primary);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 10px;
         }
 
         button:hover {
-            background-color: rgb(88, 197, 157);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 155, 123, 0.2);
+            opacity: 0.9;
         }
 
         .options {
@@ -126,17 +183,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             justify-content: space-between;
             width: 100%;
             align-items: center;
-            margin-top: 10px;
+            margin: 15px 0;
         }
 
         .options a {
             font-size: 14px;
-            color: #007bff;
+            color: var(--primary-color);
             text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
         }
 
         .options a:hover {
-            text-decoration: underline;
+            color: var(--primary-dark);
         }
 
         .image-box {
@@ -150,17 +209,62 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .image-box img {
             max-width: 100%;
             height: auto;
-            border-radius: 12px;
+            border-radius: 16px;
             object-fit: cover;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
         }
 
-        @media screen and (min-width: 600px) {
+        .image-box img:hover {
+            transform: scale(1.02);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .login-link a:hover {
+            color: var(--primary-dark);
+        }
+
+        @media screen and (min-width: 768px) {
             .register-container {
                 flex-direction: row;
+                gap: 40px;
             }
 
             .image-box {
                 width: 50%;
+            }
+
+            .register-box {
+                width: 50%;
+            }
+        }
+
+        @media screen and (max-width: 767px) {
+            .register-container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .register-box {
+                padding: 20px;
+            }
+
+            .image-box {
+                display: none;
             }
         }
     </style>
@@ -168,23 +272,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="register-container">
         <div class="register-box">
-            <h2>REGISTER</h2>
+            <h2>Create Account</h2>
 
             <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
 
             <form action="" method="POST">
-                <label for="email">Email</label>
+                <label for="email">Email Address</label>
                 <input type="email" name="email" id="email" placeholder="Enter your email" required>
 
                 <label for="password">Password</label>
-                <input type="password" name="password" id="password" placeholder="********" required>
+                <input type="password" name="password" id="password" placeholder="Create a password" required>
 
                 <label for="confirm_password">Confirm Password</label>
-                <input type="password" name="confirm_password" id="confirm_password" placeholder="********" required>
+                <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm your password" required>
 
-                <button type="submit">Sign up</button>
+                <button type="submit">Create Account</button>
             </form>
-            <p>Already have an account? <a href="index.php">Log in</a></p>
+            <p class="login-link">Already have an account? <a href="index.php">Sign in</a></p>
         </div>
         <div class="image-box">
             <img src="assets/image.png" alt="Register Image">

@@ -107,14 +107,55 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
             line-height: 1.6;
         }
 
+        .toggle-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            padding: 0;
+            z-index: 1001;
+        }
+
+        .toggle-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
         .sidebar {
             background: var(--gradient-primary);
             min-height: 100vh;
             padding: var(--spacing-md);
             box-shadow: var(--card-shadow);
             position: fixed;
-            width: inherit;
-            max-width: inherit;
+            width: 256px;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .main-content {
+            transition: all 0.3s ease;
+            margin-left: 256px;
+            width: calc(100% - 256px);
+            padding: var(--spacing-lg);
+        }
+
+        .main-content.ml-0 {
+            margin-left: 0;
+            width: 100%;
         }
 
         .sidebar h3 {
@@ -153,11 +194,6 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
         .sidebar .nav-link i {
             width: 20px;
             text-align: center;
-        }
-
-        .main-content {
-            padding: var(--spacing-lg);
-            margin-left: 16.666667%;
         }
 
         .card {
@@ -284,17 +320,39 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
             padding: var(--spacing-sm);
         }
 
-        .search-bar {
-            border-radius: var(--border-radius-sm);
-            padding: var(--spacing-sm) var(--spacing-md);
-            border: 1px solid var(--border-color);
+        .search-container {
+            position: relative;
             width: 300px;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 12px 40px 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            font-size: 14px;
             transition: all 0.3s ease;
+            background: white;
         }
 
         .search-bar:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+            box-shadow: 0 0 0 3px rgba(67, 155, 123, 0.1);
+            outline: none;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: color 0.3s ease;
+        }
+
+        .search-bar:focus + .search-icon {
+            color: var(--primary-color);
         }
 
         .filter-dropdown {
@@ -313,11 +371,22 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
             .sidebar {
                 transform: translateX(-100%);
             }
-            .sidebar.show {
-                transform: translateX(0);
+            
+            .sidebar.hidden {
+                transform: translateX(-100%);
             }
+            
             .main-content {
                 margin-left: 0;
+                width: 100%;
+            }
+            
+            .main-content.ml-64 {
+                margin-left: 0;
+            }
+
+            .toggle-btn {
+                margin-right: 0.75rem !important;
             }
         }
 
@@ -348,7 +417,7 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
+            <div class="sidebar" id="sidebar">
                 <h3 class="text-white mb-4">MediSync</h3>
                 <nav class="nav flex-column">
                     <a class="nav-link active" href="dashboard.php">
@@ -373,11 +442,19 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
             </div>
 
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
+            <div class="main-content" id="main-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Dashboard</h2>
                     <div class="d-flex align-items-center">
-                        <input type="text" class="search-bar me-3" placeholder="Search...">
+                        <button class="toggle-btn me-3" onclick="toggleSidebar()">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h2 class="mb-0">Dashboard</h2>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="search-container position-relative">
+                            <input type="text" class="search-bar" placeholder="Search...">
+                            <i class="fas fa-search search-icon"></i>
+                        </div>
                     </div>
                 </div>
 
@@ -861,6 +938,46 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
                 toast.remove();
             }, 3000);
         }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            sidebar.classList.toggle('hidden');
+            mainContent.classList.toggle('ml-64');
+            mainContent.classList.toggle('ml-0');
+        }
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.querySelector('.toggle-btn');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth <= 767.98) {
+                if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+                    sidebar.classList.add('hidden');
+                    mainContent.classList.remove('ml-64');
+                    mainContent.classList.add('ml-0');
+                }
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth <= 767.98) {
+                sidebar.classList.add('hidden');
+                mainContent.classList.remove('ml-64');
+                mainContent.classList.add('ml-0');
+            } else {
+                sidebar.classList.remove('hidden');
+                mainContent.classList.add('ml-64');
+                mainContent.classList.remove('ml-0');
+            }
+        });
     </script>
 </body>
 </html>

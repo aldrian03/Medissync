@@ -108,8 +108,49 @@ $inventory_items = $result->fetch_all(MYSQLI_ASSOC);
             padding: var(--spacing-md);
             box-shadow: var(--card-shadow);
             position: fixed;
-            width: inherit;
-            max-width: inherit;
+            width: 256px;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .main-content {
+            transition: all 0.3s ease;
+            margin-left: 256px;
+            width: calc(100% - 256px);
+            padding: var(--spacing-lg);
+        }
+
+        .main-content.ml-0 {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        .toggle-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            padding: 0;
+            z-index: 1001;
+        }
+
+        .toggle-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
         }
 
         .sidebar h3 {
@@ -148,11 +189,6 @@ $inventory_items = $result->fetch_all(MYSQLI_ASSOC);
         .sidebar .nav-link i {
             width: 20px;
             text-align: center;
-        }
-
-        .main-content {
-            padding: var(--spacing-lg);
-            margin-left: 16.666667%;
         }
 
         .card {
@@ -346,11 +382,22 @@ $inventory_items = $result->fetch_all(MYSQLI_ASSOC);
             .sidebar {
                 transform: translateX(-100%);
             }
-            .sidebar.show {
-                transform: translateX(0);
+            
+            .sidebar.hidden {
+                transform: translateX(-100%);
             }
+            
             .main-content {
                 margin-left: 0;
+                width: 100%;
+            }
+            
+            .main-content.ml-64 {
+                margin-left: 0;
+            }
+
+            .toggle-btn {
+                margin-right: 0.75rem !important;
             }
         }
 
@@ -381,13 +428,13 @@ $inventory_items = $result->fetch_all(MYSQLI_ASSOC);
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
+            <div class="sidebar" id="sidebar">
                 <h3 class="text-white mb-4">MediSync</h3>
                 <nav class="nav flex-column">
                     <a class="nav-link" href="dashboard.php">
                         <i class="fas fa-home me-2"></i>Dashboard
                     </a>
-                    <a class="nav-link active" href="inventory.php" style="pointer-events: auto;">
+                    <a class="nav-link active" href="inventory.php">
                         <i class="fas fa-pills me-2"></i>Inventory
                     </a>
                     <a class="nav-link" href="prescriptions.php">
@@ -399,13 +446,21 @@ $inventory_items = $result->fetch_all(MYSQLI_ASSOC);
                     <a class="nav-link" href="reports.php">
                         <i class="fas fa-chart-bar me-2"></i>Reports
                     </a>
+                    <a class="nav-link text-danger mt-4" href="logout.php">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
                 </nav>
             </div>
 
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
+            <div class="main-content" id="main-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Medicine Inventory</h2>
+                    <div class="d-flex align-items-center">
+                        <button class="toggle-btn me-3" onclick="toggleSidebar()">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h2 class="mb-0">Medicine Inventory</h2>
+                    </div>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMedicineModal">
                         <i class="fas fa-plus me-2"></i>Add Medicine
                     </button>
@@ -435,34 +490,54 @@ $inventory_items = $result->fetch_all(MYSQLI_ASSOC);
                     $totalStock = $result->fetch_assoc()['total_stock'] ?? 0;
                     ?>
                     <div class="col-md-3">
-                        <div class="card bg-primary text-white">
+                        <div class="card stat-card">
                             <div class="card-body">
-                                <h5 class="card-title">Total Medicines</h5>
-                                <h2 class="mb-0"><?= $total ?></h2>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="card-title">Total Medicines</h5>
+                                        <h2 class="mb-0"><?= $total ?></h2>
+                                    </div>
+                                    <i class="fas fa-pills icon"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card bg-warning text-white">
+                        <div class="card stat-card" style="background: var(--gradient-warning);">
                             <div class="card-body">
-                                <h5 class="card-title">Low Stock Items</h5>
-                                <h2 class="mb-0"><?= $lowStock ?></h2>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="card-title">Low Stock Items</h5>
+                                        <h2 class="mb-0"><?= $lowStock ?></h2>
+                                    </div>
+                                    <i class="fas fa-exclamation-triangle icon"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card bg-danger text-white">
+                        <div class="card stat-card" style="background: var(--gradient-danger);">
                             <div class="card-body">
-                                <h5 class="card-title">Out of Stock</h5>
-                                <h2 class="mb-0"><?= $outOfStock ?></h2>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="card-title">Out of Stock</h5>
+                                        <h2 class="mb-0"><?= $outOfStock ?></h2>
+                                    </div>
+                                    <i class="fas fa-times-circle icon"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card bg-success text-white">
+                        <div class="card stat-card" style="background: var(--gradient-success);">
                             <div class="card-body">
-                                <h5 class="card-title">Total Stock</h5>
-                                <h2 class="mb-0"><?= $totalStock ?></h2>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="card-title">Total Stock</h5>
+                                        <h2 class="mb-0"><?= $totalStock ?></h2>
+                                    </div>
+                                    <i class="fas fa-boxes icon"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -605,6 +680,46 @@ $inventory_items = $result->fetch_all(MYSQLI_ASSOC);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            sidebar.classList.toggle('hidden');
+            mainContent.classList.toggle('ml-64');
+            mainContent.classList.toggle('ml-0');
+        }
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.querySelector('.toggle-btn');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth <= 767.98) {
+                if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+                    sidebar.classList.add('hidden');
+                    mainContent.classList.remove('ml-64');
+                    mainContent.classList.add('ml-0');
+                }
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth <= 767.98) {
+                sidebar.classList.add('hidden');
+                mainContent.classList.remove('ml-64');
+                mainContent.classList.add('ml-0');
+            } else {
+                sidebar.classList.remove('hidden');
+                mainContent.classList.add('ml-64');
+                mainContent.classList.remove('ml-0');
+            }
+        });
+
         // Search functionality
         document.getElementById('searchInput').addEventListener('keyup', function() {
             const searchText = this.value.toLowerCase();
