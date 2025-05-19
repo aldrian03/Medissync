@@ -798,13 +798,12 @@ $prescriptions = $result->fetch_all(MYSQLI_ASSOC);
         // Cancel prescription function
         function cancelPrescription(id) {
             if (confirm('Are you sure you want to cancel this prescription?')) {
-                const formData = new FormData();
-                formData.append('action', 'cancel');
-                formData.append('id', id);
-
-                fetch('prescriptions.php', {
+                fetch('cancel_prescription.php', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'id=' + id
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -819,21 +818,35 @@ $prescriptions = $result->fetch_all(MYSQLI_ASSOC);
                         const currentUnapproved = parseInt(unapprovedCount.textContent);
                         unapprovedCount.textContent = currentUnapproved + 1;
                         
-                        // Remove the row from the table
+                        // Update the row's status badge
                         const row = document.querySelector(`tr[data-prescription-id="${id}"]`);
                         if (row) {
-                            row.remove();
+                            const statusCell = row.querySelector('td:nth-child(4)');
+                            statusCell.innerHTML = '<span class="badge bg-danger">Unapproved</span>';
+                            
+                            // Update action buttons
+                            const actionCell = row.querySelector('td:last-child');
+                            actionCell.innerHTML = `
+                                <div class="btn-group">
+                                    <a href="view_prescription.php?id=${id}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <button class="btn btn-sm btn-success" onclick="approvePrescription(${id})">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                </div>
+                            `;
                         }
                         
                         // Show success message
-                        showToast('success', 'Prescription cancelled successfully');
+                        alert('Prescription cancelled successfully');
                     } else {
-                        showToast('error', data.message || 'Failed to cancel prescription');
+                        alert(data.message || 'Failed to cancel prescription');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showToast('error', 'An error occurred while cancelling the prescription');
+                    alert('An error occurred while cancelling the prescription');
                 });
             }
         }

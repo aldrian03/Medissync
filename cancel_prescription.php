@@ -31,10 +31,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
         
         try {
+            // Get current prescription status
+            $stmt = $conn->prepare("SELECT status FROM prescriptions WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $prescription = $result->fetch_assoc();
+            
+            if (!$prescription) {
+                throw new Exception("Prescription not found");
+            }
+            
             // Update prescription status to unapproved
             $stmt = $conn->prepare("UPDATE prescriptions SET status = 'unapproved' WHERE id = ?");
             $stmt->bind_param("i", $id);
-            $stmt->execute();
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update prescription status");
+            }
             
             // Commit transaction
             $conn->commit();

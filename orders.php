@@ -224,11 +224,53 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
             padding: var(--spacing-md);
             position: relative;
             overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .stat-card.active {
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 20px rgba(67, 155, 123, 0.3);
+        }
+
+        .stat-card h6 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0.9;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .icon-wrapper {
+            background: rgba(255, 255, 255, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover .icon-wrapper {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
         }
 
         .stat-card .icon {
-            font-size: 2.5rem;
-            opacity: 0.8;
+            font-size: 1.5rem;
+            opacity: 0.9;
         }
 
         .table {
@@ -483,6 +525,29 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
             transform: none;
             box-shadow: none;
         }
+
+        .btn-receive {
+            background: var(--gradient-success);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
+            transition: all 0.3s ease;
+        }
+
+        .btn-receive:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+            opacity: 0.9;
+            color: white;
+        }
+
+        .btn-receive:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -529,62 +594,42 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
 
                 <!-- Statistics Cards -->
                 <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="stat-card" style="height: 100%;">
+                    <div class="col-md-4">
+                        <div class="stat-card" style="height: 100%; cursor: pointer;" onclick="filterByStatus('all')">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6>Total Orders</h6>
-                                    <h3><?= $stats['total_orders'] ?></h3>
+                                    <h6 class="mb-2">Total Orders</h6>
+                                    <h3 class="mb-0"><?= $stats['total_orders'] ?></h3>
                                 </div>
-                                <i class="fas fa-shopping-cart icon"></i>
+                                <div class="icon-wrapper">
+                                    <i class="fas fa-shopping-cart icon"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card" style="height: 100%;">
+                    <div class="col-md-4">
+                        <div class="stat-card" style="height: 100%; cursor: pointer;" onclick="filterByStatus('pending')">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6>Pending Orders</h6>
-                                    <h3><?= $stats['pending_orders'] ?></h3>
+                                    <h6 class="mb-2">Pending Orders</h6>
+                                    <h3 class="mb-0"><?= $stats['pending_orders'] ?></h3>
                                 </div>
-                                <i class="fas fa-clock icon"></i>
+                                <div class="icon-wrapper">
+                                    <i class="fas fa-clock icon"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card" style="height: 100%;">
+                    <div class="col-md-4">
+                        <div class="stat-card" style="height: 100%; cursor: pointer;" onclick="filterByStatus('delivered')">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6>Delivered</h6>
-                                    <h3><?= $stats['delivered_orders'] ?></h3>
+                                    <h6 class="mb-2">Delivered</h6>
+                                    <h3 class="mb-0"><?= $stats['delivered_orders'] ?></h3>
                                 </div>
-                                <i class="fas fa-check-circle icon"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stat-card" style="height: 100%;">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Cancelled</h6>
-                                    <h3><?= $stats['cancelled_orders'] ?></h3>
+                                <div class="icon-wrapper">
+                                    <i class="fas fa-check-circle icon"></i>
                                 </div>
-                                <i class="fas fa-times-circle icon"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Today's Appointments Card -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="stat-card" style="height: 100%;">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Today's Appointments</h6>
-                                    <h3>0</h3> <!-- Placeholder for actual appointments count -->
-                                </div>
-                                <i class="fas fa-calendar-check icon"></i>
                             </div>
                         </div>
                     </div>
@@ -653,10 +698,10 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="badge bg-info">
-                                                <i class="fas fa-pills me-1"></i>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-pills me-2 text-primary"></i>
                                                 <?= htmlspecialchars($order['medicine_name']) ?>
-                                            </span>
+                                            </div>
                                         </td>
                                         <td><?= $order['quantity'] ?></td>
                                         <td><?= date('M d, Y', strtotime($order['order_date'])) ?></td>
@@ -688,10 +733,10 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
                                             </button>
                                         </td>
                                         <td>
-                                            <button class="btn btn-cancel btn-sm" 
-                                                    onclick="cancelOrder(<?= $order['id'] ?>)"
-                                                    <?= $order['status'] === 'cancelled' || $order['status'] === 'delivered' ? 'disabled' : '' ?>>
-                                                <i class="fas fa-ban me-1"></i>Cancel Order
+                                            <button class="btn btn-receive btn-sm" 
+                                                    onclick="markAsReceived(<?= $order['id'] ?>)"
+                                                    <?= $order['status'] === 'delivered' ? 'disabled' : '' ?>>
+                                                <i class="fas fa-check-circle me-1"></i>Order Received
                                             </button>
                                         </td>
                                     </tr>
@@ -769,32 +814,39 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
                 </div>
                 <div class="modal-body">
                     <div class="tracking-info">
-                        <div class="tracking-step completed">
+                        <div class="tracking-step" data-step="placed">
                             <i class="fas fa-check"></i>
                             <div>
                                 <h6 class="mb-0">Order Placed</h6>
                                 <small class="text-muted">Order has been placed successfully</small>
                             </div>
                         </div>
-                        <div class="tracking-step active">
+                        <div class="tracking-step" data-step="processing">
                             <i class="fas fa-box"></i>
                             <div>
                                 <h6 class="mb-0">Processing</h6>
                                 <small class="text-muted">Order is being processed</small>
                             </div>
                         </div>
-                        <div class="tracking-step">
+                        <div class="tracking-step" data-step="shipped">
                             <i class="fas fa-truck"></i>
                             <div>
                                 <h6 class="mb-0">Shipped</h6>
                                 <small class="text-muted">Order is on the way</small>
                             </div>
                         </div>
-                        <div class="tracking-step">
+                        <div class="tracking-step" data-step="delivered">
                             <i class="fas fa-home"></i>
                             <div>
                                 <h6 class="mb-0">Delivered</h6>
                                 <small class="text-muted">Order has been delivered</small>
+                            </div>
+                        </div>
+                        <div class="tracking-step" data-step="received">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <h6 class="mb-0">Order Received</h6>
+                                <small class="text-muted">Order has been received and confirmed</small>
                             </div>
                         </div>
                     </div>
@@ -856,24 +908,56 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
             const date = document.getElementById('dateFilter').value;
             
             const rows = document.querySelectorAll('tbody tr');
+            let visibleCount = 0;
             
             rows.forEach(row => {
                 const rowStatus = row.querySelector('.status-text').textContent.toLowerCase();
                 const rowSupplier = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
                 const rowDate = row.querySelector('td:nth-child(5)').textContent;
                 
-                const statusMatch = !status || rowStatus === status;
+                const statusMatch = status === 'all' || rowStatus === status;
                 const supplierMatch = !supplier || rowSupplier === supplier;
                 const dateMatch = !date || rowDate.includes(date);
                 
-                row.style.display = statusMatch && supplierMatch && dateMatch ? '' : 'none';
+                if (statusMatch && supplierMatch && dateMatch) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
             });
+            
+            // Show message if no results
+            const tableBody = document.querySelector('tbody');
+            let noResultsRow = tableBody.querySelector('.no-results');
+            
+            if (visibleCount === 0) {
+                if (!noResultsRow) {
+                    noResultsRow = document.createElement('tr');
+                    noResultsRow.className = 'no-results';
+                    noResultsRow.innerHTML = `
+                        <td colspan="8" class="text-center py-4">
+                            <i class="fas fa-search fa-2x mb-3 text-muted"></i>
+                            <p class="mb-0">No orders found matching the selected filters</p>
+                        </td>
+                    `;
+                    tableBody.appendChild(noResultsRow);
+                }
+            } else if (noResultsRow) {
+                noResultsRow.remove();
+            }
         }
 
         function resetFilters() {
             document.getElementById('statusFilter').value = '';
             document.getElementById('supplierFilter').value = '';
             document.getElementById('dateFilter').value = '';
+            
+            // Remove active class from all cards
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
             applyFilters();
         }
 
@@ -912,20 +996,65 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
         });
 
         function viewTracking(id) {
-            // Implement tracking view
-            new bootstrap.Modal(document.getElementById('trackingModal')).show();
+            // Fetch order status
+            fetch('get_order_status.php?id=' + id)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateTrackingSteps(data.status);
+                        new bootstrap.Modal(document.getElementById('trackingModal')).show();
+                    } else {
+                        showToast('error', 'Failed to fetch order status');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'An error occurred while fetching order status');
+                });
         }
 
-        function cancelOrder(id) {
-            if (confirm('Are you sure you want to cancel this order?')) {
-                const button = document.querySelector(`button[onclick="cancelOrder(${id})"]`);
+        function updateTrackingSteps(status) {
+            const steps = document.querySelectorAll('.tracking-step');
+            steps.forEach(step => {
+                step.classList.remove('completed', 'active');
+            });
+
+            // Always mark "Order Placed" as completed
+            steps[0].classList.add('completed');
+
+            switch(status.toLowerCase()) {
+                case 'delivered':
+                    steps.forEach(step => {
+                        if (step.dataset.step !== 'received') {
+                            step.classList.add('completed');
+                        }
+                    });
+                    steps[4].classList.add('active'); // Show "Order Received" as active
+                    break;
+                case 'shipped':
+                    steps[1].classList.add('completed');
+                    steps[2].classList.add('active');
+                    break;
+                case 'processing':
+                    steps[1].classList.add('active');
+                    break;
+                default:
+                    steps[0].classList.add('completed');
+                    steps[1].classList.add('active');
+            }
+        }
+
+        // Update tracking steps when marking as received
+        function markAsReceived(id) {
+            if (confirm('Mark this order as received?')) {
+                const button = document.querySelector(`button[onclick="markAsReceived(${id})"]`);
                 const row = document.querySelector(`tr[data-order-id="${id}"]`);
                 
                 if (button && row) {
                     button.disabled = true;
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cancelling...';
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
 
-                    fetch('cancel_order.php', {
+                    fetch('mark_received.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
@@ -935,30 +1064,38 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Remove the row from the table
-                            row.remove();
-
-                            // Update all counts from server data
+                            // Update the status in the table
+                            const statusCell = row.querySelector('.status-text');
+                            statusCell.className = 'status-text success';
+                            statusCell.textContent = 'Delivered';
+                            
+                            // Disable the receive button
+                            button.disabled = true;
+                            button.innerHTML = '<i class="fas fa-check-circle me-1"></i>Received';
+                            
+                            // Update the statistics cards with new counts
                             if (data.counts) {
                                 document.querySelector('.stat-card:nth-child(1) h3').textContent = data.counts.total_orders;
                                 document.querySelector('.stat-card:nth-child(2) h3').textContent = data.counts.pending_orders;
                                 document.querySelector('.stat-card:nth-child(3) h3').textContent = data.counts.delivered_orders;
-                                document.querySelector('.stat-card:nth-child(4) h3').textContent = data.counts.cancelled_orders;
                             }
+
+                            // Update tracking steps to show received status
+                            updateTrackingSteps('delivered');
 
                             // Show success message
                             showToast('success', data.message);
                         } else {
-                            showToast('error', data.message || 'Failed to cancel order');
+                            showToast('error', data.message || 'Failed to mark order as received');
                             button.disabled = false;
-                            button.innerHTML = '<i class="fas fa-ban me-1"></i>Cancel Order';
+                            button.innerHTML = '<i class="fas fa-check-circle me-1"></i>Order Received';
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        showToast('error', 'An error occurred while cancelling the order');
+                        showToast('error', 'An error occurred while processing the order');
                         button.disabled = false;
-                        button.innerHTML = '<i class="fas fa-ban me-1"></i>Cancel Order';
+                        button.innerHTML = '<i class="fas fa-check-circle me-1"></i>Order Received';
                     });
                 }
             }
@@ -991,6 +1128,24 @@ $medicines = $result->fetch_all(MYSQLI_ASSOC);
             setTimeout(() => {
                 toast.remove();
             }, 3000);
+        }
+
+        function filterByStatus(status) {
+            // Remove active class from all cards
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Add active class to clicked card
+            const clickedCard = event.currentTarget;
+            clickedCard.classList.add('active');
+            
+            // Update status filter dropdown
+            const statusFilter = document.getElementById('statusFilter');
+            statusFilter.value = status;
+            
+            // Apply filters
+            applyFilters();
         }
     </script>
 </body>

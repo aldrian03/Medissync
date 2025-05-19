@@ -34,8 +34,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $medicine = htmlspecialchars($_POST['medicine']);
         $dosage = htmlspecialchars($_POST['dosage']);
         
-        $stmt = $conn->prepare("UPDATE prescriptions SET patient_name = ?, medicine = ?, dosage = ? WHERE id = ?");
-        $stmt->bind_param("sssi", $patient_name, $medicine, $dosage, $id);
+        // Get current status before update
+        $stmt = $conn->prepare("SELECT status FROM prescriptions WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $current_status = $result->fetch_assoc()['status'];
+        
+        // Update prescription while maintaining the current status
+        $stmt = $conn->prepare("UPDATE prescriptions SET patient_name = ?, medicine = ?, dosage = ?, status = ? WHERE id = ?");
+        $stmt->bind_param("ssssi", $patient_name, $medicine, $dosage, $current_status, $id);
         
         if ($stmt->execute()) {
             header("Location: prescriptions.php?success=1");
@@ -70,11 +78,11 @@ if (!$prescription) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #0a192f;  /* Navy */
+            --primary-color: #439b7b;
             --primary-dark: #020c1b;
             --primary-light: #112240;
-            --secondary-color: #20b2aa;  /* Teal */
-            --accent-color: #64ffda;  /* Light Teal */
+            --secondary-color: #20b2aa;
+            --accent-color: #64ffda;
             --success-color: #20b2aa;
             --warning-color: #ffd166;
             --danger-color: #ef4444;
@@ -102,85 +110,145 @@ if (!$prescription) {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--background-color);
             color: var(--text-color);
+            line-height: 1.6;
         }
 
         .sidebar {
-            background: var(--primary-color);
+            background: var(--gradient-primary);
             min-height: 100vh;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
+            padding: var(--spacing-md);
+            box-shadow: var(--card-shadow);
+            position: fixed;
+            width: 256px;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
         }
 
         .sidebar .nav-link {
-            color: #fff;
-            padding: 0.8rem 1rem;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: var(--spacing-xs);
             transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
         }
 
         .sidebar .nav-link:hover {
             background: rgba(255, 255, 255, 0.1);
             transform: translateX(5px);
+            color: white;
         }
 
         .sidebar .nav-link.active {
-            background: var(--secondary-color);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar .nav-link i {
+            width: 20px;
+            text-align: center;
         }
 
         .main-content {
-            padding: 2rem;
+            margin-left: 256px;
+            padding: var(--spacing-lg);
+            transition: all 0.3s ease;
         }
 
         .card {
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            background: white;
+            overflow: hidden;
         }
 
         .card:hover {
-            transform: translateY(-5px);
-        }
-
-        .btn-primary {
-            background: var(--secondary-color);
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
-        }
-
-        .btn-primary:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
         }
 
         .prescription-header {
-            background: var(--primary-color);
+            background: var(--gradient-primary);
             color: white;
-            padding: 2rem;
-            border-radius: 15px 15px 0 0;
-            margin-bottom: 2rem;
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+            margin-bottom: var(--spacing-md);
         }
 
         .prescription-body {
-            padding: 2rem;
+            padding: var(--spacing-lg);
         }
 
         .form-label {
             font-weight: 600;
-            color: var(--primary-color);
+            color: var(--text-color);
+            margin-bottom: var(--spacing-xs);
         }
 
         .form-control, .form-select {
-            border-radius: 8px;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
+            border-radius: var(--border-radius-sm);
+            border: 2px solid var(--border-color);
+            padding: var(--spacing-sm);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: var(--background-color);
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 155, 123, 0.1);
+            background: #fff;
+        }
+
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--text-muted);
+            border: none;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--text-color);
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .alert {
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border: none;
+        }
+
+        .alert-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border-left: 4px solid var(--danger-color);
         }
 
         @media print {
@@ -198,6 +266,17 @@ if (!$prescription) {
                 background: none !important;
                 color: black !important;
                 border-bottom: 2px solid black;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: var(--spacing-md);
             }
         }
     </style>

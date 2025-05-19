@@ -60,6 +60,26 @@ $weeklyData = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $query = "SELECT * FROM prescriptions ORDER BY created_at DESC LIMIT 5";
 $result = $conn->query($query);
 $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
+
+// Get total medicines
+$query = "SELECT COUNT(*) as total_medicines FROM inventory";
+$result = $conn->query($query);
+$total_medicines = $result->fetch_assoc()['total_medicines'];
+
+// Get low stock count
+$query = "SELECT COUNT(*) as low_stock_count FROM inventory WHERE quantity <= 10";
+$result = $conn->query($query);
+$low_stock_count = $result->fetch_assoc()['low_stock_count'];
+
+// Get total orders
+$query = "SELECT COUNT(*) as total_orders FROM orders";
+$result = $conn->query($query);
+$total_orders = $result->fetch_assoc()['total_orders'];
+
+// Get total prescriptions
+$query = "SELECT COUNT(*) as total_prescriptions FROM prescriptions";
+$result = $conn->query($query);
+$total_prescriptions = $result->fetch_assoc()['total_prescriptions'];
 ?>
 
 <!DOCTYPE html>
@@ -458,57 +478,49 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
                     </div>
                 </div>
 
-                <!-- Stats Cards -->
+                <!-- Statistics Cards -->
                 <div class="row mb-4">
                     <div class="col-md-3">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="card-title">Total Patients</h6>
-                                        <h3><?= $total_patients ?></h3>
-                                    </div>
-                                    <i class="fas fa-users icon"></i>
+                        <div class="stat-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6>Total Patients</h6>
+                                    <h3><?= $total_patients ?></h3>
                                 </div>
+                                <i class="fas fa-users icon"></i>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="card-title">Today's Appointments</h6>
-                                        <h3><?= $appointments_today ?></h3>
-                                    </div>
-                                    <i class="fas fa-calendar-check icon"></i>
+                        <div class="stat-card" style="background: var(--gradient-warning);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6>Low Stock Alert</h6>
+                                    <h3><?= $low_stock_count ?></h3>
                                 </div>
+                                <i class="fas fa-exclamation-triangle icon"></i>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="card-title">Total Stocks</h6>
-                                        <h3><?= number_format($total_stocks) ?></h3>
-                                    </div>
-                                    <i class="fas fa-pills icon"></i>
+                        <div class="stat-card" style="background: var(--gradient-success);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6>Total Orders</h6>
+                                    <h3><?= $total_orders ?></h3>
                                 </div>
+                                <i class="fas fa-shopping-cart icon"></i>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="card-title">Pending Orders</h6>
-                                        <h3><?= $pending_orders ?></h3>
-                                    </div>
-                                    <i class="fas fa-shopping-cart icon"></i>
+                        <div class="stat-card" style="background: var(--gradient-primary);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6>Total Prescriptions</h6>
+                                    <h3><?= $total_prescriptions ?></h3>
                                 </div>
+                                <i class="fas fa-prescription icon"></i>
                             </div>
                         </div>
                     </div>
