@@ -1,9 +1,9 @@
 <?php
 session_start();
 
-// Check if user is logged in
+// Redirect if not logged in
 if (!isset($_SESSION['user'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+    header("Location: index.php");
     exit();
 }
 
@@ -20,87 +20,48 @@ if ($conn->connect_error) {
     exit();
 }
 
-// Check if it's a POST request
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        // Get and validate order ID
-        $order_id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-        
-        if ($order_id <= 0) {
-            throw new Exception('Invalid order ID');
-        }
-
-        // Start transaction
-        $conn->begin_transaction();
-
-        // Check if order exists and is not already cancelled or delivered
-        $check_query = "SELECT status FROM orders WHERE id = ?";
-        $stmt = $conn->prepare($check_query);
-        if (!$stmt) {
-            throw new Exception('Failed to prepare order check query: ' . $conn->error);
-        }
-        $stmt->bind_param("i", $order_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows === 0) {
-            throw new Exception('Order not found');
-        }
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+    $id = (int)$_POST['id'];
+    
+    // First get the current status of the order
+    $check_stmt = $conn->prepare("SELECT status FROM orders WHERE id = ?");
+    $check_stmt->bind_param("i", $id);
+    $check_stmt->execute();
+    $result = $check_stmt->get_result();
+    
+    if ($result->num_rows > 0) {
         $order = $result->fetch_assoc();
-        if ($order['status'] === 'cancelled') {
-            throw new Exception('Order is already cancelled');
-        }
-        if ($order['status'] === 'delivered') {
-            throw new Exception('Cannot cancel a delivered order');
-        }
-
-        // Update order status to cancelled
-        $update_query = "UPDATE orders SET status = 'cancelled' WHERE id = ?";
-        $stmt = $conn->prepare($update_query);
-        if (!$stmt) {
-            throw new Exception('Failed to prepare update query: ' . $conn->error);
-        }
-        $stmt->bind_param("i", $order_id);
+        $was_pending = ($order['status'] === 'pending');
         
-        if (!$stmt->execute()) {
-            throw new Exception('Failed to cancel order: ' . $stmt->error);
-        }
-
-        // Add tracking information
-        $tracking_query = "INSERT INTO order_tracking (order_id, status, location, notes) VALUES (?, 'cancelled', 'Order Cancelled', 'Order has been cancelled')";
-        $stmt = $conn->prepare($tracking_query);
-        if (!$stmt) {
-            throw new Exception('Failed to prepare tracking insert query: ' . $conn->error);
-        }
-        $stmt->bind_param("i", $order_id);
+        // Delete the order instead of updating status
+        $stmt = $conn->prepare("DELETE FROM orders WHERE id = ?");
+        $stmt->bind_param("i", $id);
         
-        if (!$stmt->execute()) {
-            throw new Exception('Failed to add tracking information: ' . $stmt->error);
+        if ($stmt->execute()) {
+            // Get updated counts
+            $counts_query = "SELECT 
+                COUNT(*) as total_orders,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_orders,
+                SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders,
+                SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders
+            FROM orders";
+            $counts_result = $conn->query($counts_query);
+            $counts = $counts_result->fetch_assoc();
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Order cancelled and removed successfully',
+                'was_pending' => $was_pending,
+                'counts' => $counts
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to cancel order']);
         }
-
-        // Commit transaction
-        $conn->commit();
-
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Order cancelled successfully'
-        ]);
-
-    } catch (Exception $e) {
-        // Rollback transaction on error
-        $conn->rollback();
-        
-        // Log error
-        error_log("Order cancellation error: " . $e->getMessage());
-        
-        echo json_encode([
-            'success' => false, 
-            'message' => $e->getMessage()
-        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Order not found']);
     }
 } else {
-    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+    echo json_encode(['success' => false, 'message' => 'Invalid request']);
 }
 
 $conn->close();

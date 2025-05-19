@@ -52,73 +52,236 @@ $recentOrders = $result->fetch_all(MYSQLI_ASSOC);
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --background-color: #f8f9fa;
-            --text-color: #2c3e50;
+            --primary-color: #439b7b;  /* Navy */
+            --primary-dark: #020c1b;
+            --primary-light: #112240;
+            --secondary-color: #20b2aa;  /* Teal */
+            --accent-color: #64ffda;  /* Light Teal */
+            --success-color: #20b2aa;
+            --warning-color: #ffd166;
+            --danger-color: #ef4444;
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            --gradient-secondary: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+            --gradient-success: linear-gradient(135deg, var(--success-color), var(--accent-color));
+            --gradient-warning: linear-gradient(135deg, var(--warning-color), #fbbf24);
+            --gradient-danger: linear-gradient(135deg, var(--danger-color), #f87171);
+            --border-radius-sm: 8px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 16px;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--background-color);
             color: var(--text-color);
+            line-height: 1.6;
         }
 
         .sidebar {
-            background: var(--primary-color);
+            background: var(--gradient-primary);
             min-height: 100vh;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
+            padding: var(--spacing-md);
+            box-shadow: var(--card-shadow);
+            position: fixed;
+            width: inherit;
+            max-width: inherit;
+        }
+
+        .sidebar h3 {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
         .sidebar .nav-link {
-            color: #fff;
-            padding: 0.8rem 1rem;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: var(--spacing-xs);
             transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
         }
 
         .sidebar .nav-link:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             transform: translateX(5px);
+            color: white;
         }
 
         .sidebar .nav-link.active {
-            background: var(--secondary-color);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar .nav-link i {
+            width: 20px;
+            text-align: center;
         }
 
         .main-content {
-            padding: 2rem;
+            padding: var(--spacing-lg);
+            margin-left: 16.666667%;
         }
 
         .card {
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            background: white;
+            overflow: hidden;
         }
 
         .card:hover {
-            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
         }
 
         .stat-card {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            background: var(--gradient-primary);
             color: white;
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            position: relative;
+            overflow: hidden;
         }
 
         .stat-card .icon {
             font-size: 2.5rem;
             opacity: 0.8;
+            color: var(--accent-color);
         }
 
         .chart-container {
             background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            box-shadow: var(--card-shadow);
+        }
+
+        .chart-container h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .table {
+            background: white;
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+
+        .table thead {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .table th {
+            font-weight: 600;
+            padding: var(--spacing-md);
+            border: none;
+        }
+
+        .table td {
+            padding: var(--spacing-md);
+            vertical-align: middle;
+            color: var(--text-color);
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(10, 25, 47, 0.05);
+        }
+
+        .status-text {
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .status-text.success {
+            color: var(--success-color);
+            background-color: rgba(32, 178, 170, 0.1);
+        }
+
+        .status-text.warning {
+            color: var(--warning-color);
+            background-color: rgba(255, 209, 102, 0.1);
+        }
+
+        .status-text.danger {
+            color: var(--danger-color);
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .badge {
+            display: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            border: none;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            transition: all 0.3s ease;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+            opacity: 0.9;
+        }
+
+        @media (max-width: 767.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .sidebar.collapsed {
+                width: 70px;
+            }
+            .sidebar.collapsed .nav-link span,
+            .sidebar.collapsed h3,
+            .sidebar.collapsed .text-danger {
+                display: none;
+            }
+            .sidebar.collapsed .nav-link {
+                text-align: center;
+                padding: 0.8rem 0;
+            }
+            .sidebar.collapsed .nav-link i {
+                margin: 0;
+                font-size: 1.2rem;
+            }
+            .main-content.expanded {
+                margin-left: 70px;
+            }
         }
     </style>
 </head>
@@ -134,7 +297,6 @@ $recentOrders = $result->fetch_all(MYSQLI_ASSOC);
                     <a class="nav-link" href="prescriptions.php"><i class="fas fa-prescription me-2"></i>Prescriptions</a>
                     <a class="nav-link" href="orders.php"><i class="fas fa-truck me-2"></i>Orders</a>
                     <a class="nav-link active" href="reports.php"><i class="fas fa-chart-bar me-2"></i>Reports</a>
-                    <a class="nav-link" href="settings.php"><i class="fas fa-cog me-2"></i>Settings</a>
                 </nav>
             </div>
 
@@ -232,7 +394,7 @@ $recentOrders = $result->fetch_all(MYSQLI_ASSOC);
                                                         $statusClass = 'danger';
                                                     }
                                                     ?>
-                                                    <span class="badge bg-<?= $statusClass ?>"><?= $status ?></span>
+                                                    <span class="status-text <?= $statusClass ?>"><?= $status ?></span>
                                                 </td>
                                             </tr>
                                             <?php endforeach; ?>
@@ -263,7 +425,7 @@ $recentOrders = $result->fetch_all(MYSQLI_ASSOC);
                                                 <td><?= htmlspecialchars($order['medicine_name']) ?></td>
                                                 <td><?= $order['quantity'] ?></td>
                                                 <td>
-                                                    <span class="badge bg-<?= $order['status'] === 'delivered' ? 'success' : 'warning' ?>">
+                                                    <span class="status-text <?= $order['status'] === 'delivered' ? 'success' : 'warning' ?>">
                                                         <?= ucfirst($order['status']) ?>
                                                     </span>
                                                 </td>
@@ -292,10 +454,10 @@ $recentOrders = $result->fetch_all(MYSQLI_ASSOC);
                 datasets: [{
                     label: 'Prescriptions',
                     data: [65, 59, 80, 81, 56, 55],
-                    borderColor: '#3498db',
+                    borderColor: '#20b2aa',
                     tension: 0.4,
                     fill: true,
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)'
+                    backgroundColor: 'rgba(32, 178, 170, 0.1)'
                 }]
             },
             options: {
@@ -331,9 +493,9 @@ $recentOrders = $result->fetch_all(MYSQLI_ASSOC);
                 datasets: [{
                     data: [70, 20, 10],
                     backgroundColor: [
-                        '#2ecc71',
-                        '#f1c40f',
-                        '#e74c3c'
+                        '#20b2aa',  // Teal
+                        '#ffd166',  // Warning
+                        '#ef4444'   // Danger
                     ]
                 }]
             },

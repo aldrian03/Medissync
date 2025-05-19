@@ -70,11 +70,32 @@ if (!$prescription) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --background-color: #f8f9fa;
-            --text-color: #2c3e50;
+            --primary-color: #0a192f;  /* Navy */
+            --primary-dark: #020c1b;
+            --primary-light: #112240;
+            --secondary-color: #20b2aa;  /* Teal */
+            --accent-color: #64ffda;  /* Light Teal */
+            --success-color: #20b2aa;
+            --warning-color: #ffd166;
+            --danger-color: #ef4444;
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            --gradient-secondary: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+            --gradient-success: linear-gradient(135deg, var(--success-color), var(--accent-color));
+            --gradient-warning: linear-gradient(135deg, var(--warning-color), #fbbf24);
+            --gradient-danger: linear-gradient(135deg, var(--danger-color), #f87171);
+            --border-radius-sm: 8px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 16px;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
         }
 
         body {
@@ -202,9 +223,6 @@ if (!$prescription) {
                     </a>
                     <a class="nav-link" href="reports.php">
                         <i class="fas fa-chart-bar me-2"></i>Reports
-                    </a>
-                    <a class="nav-link" href="settings.php">
-                        <i class="fas fa-cog me-2"></i>Settings
                     </a>
                 </nav>
             </div>

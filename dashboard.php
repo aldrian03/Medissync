@@ -72,61 +72,114 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --background-color: #f8f9fa;
-            --text-color: #2c3e50;
+            --primary-color: #439b7b;  /* Navy */
+            --primary-dark: #020c1b;
+            --primary-light: #112240;
+            --secondary-color: #20b2aa;  /* Teal */
+            --accent-color: #64ffda;  /* Light Teal */
+            --success-color: #20b2aa;
+            --warning-color:rgb(190, 145, 38);
+            --danger-color:rgb(156, 50, 50);
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            --gradient-secondary: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+            --gradient-success: linear-gradient(135deg, var(--success-color), var(--accent-color));
+            --gradient-warning: linear-gradient(135deg, var(--warning-color),rgb(145, 105, 5));
+            --gradient-danger: linear-gradient(135deg, var(--danger-color), #f87171);
+            --border-radius-sm: 8px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 16px;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--background-color);
             color: var(--text-color);
+            line-height: 1.6;
         }
 
         .sidebar {
-            background: var(--primary-color);
+            background: var(--gradient-primary);
             min-height: 100vh;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
+            padding: var(--spacing-md);
+            box-shadow: var(--card-shadow);
+            position: fixed;
+            width: inherit;
+            max-width: inherit;
+        }
+
+        .sidebar h3 {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
         .sidebar .nav-link {
-            color: #fff;
-            padding: 0.8rem 1rem;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: var(--spacing-xs);
             transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
         }
 
         .sidebar .nav-link:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             transform: translateX(5px);
+            color: white;
         }
 
         .sidebar .nav-link.active {
-            background: var(--secondary-color);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar .nav-link i {
+            width: 20px;
+            text-align: center;
         }
 
         .main-content {
-            padding: 2rem;
+            padding: var(--spacing-lg);
+            margin-left: 16.666667%;
         }
 
         .card {
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            background: white;
+            overflow: hidden;
         }
 
         .card:hover {
-            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
         }
 
         .stat-card {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            background: var(--gradient-primary);
             color: white;
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            position: relative;
+            overflow: hidden;
         }
 
         .stat-card .icon {
@@ -134,117 +187,160 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
             opacity: 0.8;
         }
 
-        .chart-container {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
         .table {
             background: white;
-            border-radius: 15px;
+            border-radius: var(--border-radius-md);
             overflow: hidden;
+            box-shadow: var(--card-shadow);
         }
 
         .table thead {
-            background: var(--primary-color);
+            background: var(--gradient-primary);
             color: white;
         }
 
-        .btn-primary {
-            background: var(--secondary-color);
+        .table th {
+            font-weight: 600;
+            padding: var(--spacing-md);
             border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
         }
 
-        .btn-primary:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-        }
-
-        .search-bar {
-            border-radius: 20px;
-            padding: 0.8rem 1.5rem;
-            border: 1px solid #ddd;
-            width: 300px;
-        }
-
-        .status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-
-        .status-badge.success {
-            background-color: #2ecc71;
-            color: white;
-        }
-
-        .status-badge.warning {
-            background-color: #f1c40f;
-            color: white;
-        }
-
-        .status-badge.danger {
-            background-color: #e74c3c;
-            color: white;
-        }
-
-        .avatar-circle {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        .table > :not(caption) > * > * {
-            padding: 1rem;
+        .table td {
+            padding: var(--spacing-md);
+            vertical-align: middle;
+            color: var(--text-color);
         }
 
         .table tbody tr:hover {
-            background-color: rgba(52, 152, 219, 0.05);
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            border: none;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            transition: all 0.3s ease;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+            opacity: 0.9;
         }
 
         .badge {
             padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
             font-weight: 500;
+            letter-spacing: 0.3px;
         }
 
-        .btn-group .btn {
-            padding: 0.5rem 0.75rem;
+        .badge.bg-success {
+            background: var(--gradient-success) !important;
+        }
+
+        .badge.bg-warning {
+            background: var(--gradient-warning) !important;
+        }
+
+        .badge.bg-danger {
+            background: var(--gradient-danger) !important;
+        }
+
+        .modal-content {
+            border-radius: var(--border-radius-md);
+            border: none;
+            box-shadow: var(--hover-shadow);
         }
 
         .modal-header {
-            border-radius: 0.5rem 0.5rem 0 0;
-        }
-
-        .input-group-text {
-            background-color: #f8f9fa;
-            border-right: none;
+            background: var(--gradient-primary);
+            color: white;
+            border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+            padding: var(--spacing-md);
         }
 
         .form-control, .form-select {
-            border-left: none;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-color);
+            padding: var(--spacing-sm);
+            font-size: 0.95rem;
+            color: var(--text-color);
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: #dee2e6;
-            box-shadow: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
         }
 
-        .input-group:focus-within {
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        .input-group-text {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
+            padding: var(--spacing-sm);
         }
 
-        .input-group:focus-within .input-group-text,
-        .input-group:focus-within .form-control,
-        .input-group:focus-within .form-select {
-            border-color: #3498db;
+        .search-bar {
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+        }
+
+        .filter-dropdown {
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .filter-dropdown:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+        }
+
+        @media (max-width: 767.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .sidebar.collapsed {
+                width: 70px;
+            }
+            .sidebar.collapsed .nav-link span,
+            .sidebar.collapsed h3,
+            .sidebar.collapsed .text-danger {
+                display: none;
+            }
+            .sidebar.collapsed .nav-link {
+                text-align: center;
+                padding: 0.8rem 0;
+            }
+            .sidebar.collapsed .nav-link i {
+                margin: 0;
+                font-size: 1.2rem;
+            }
+            .main-content.expanded {
+                margin-left: 70px;
+            }
         }
     </style>
 </head>
@@ -379,8 +475,7 @@ $recent_prescriptions = $result->fetch_all(MYSQLI_ASSOC);
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar-circle bg-primary text-white me-2">
-                                                    <?= strtoupper(substr($prescription['patient_name'], 0, 1)) ?>
+
                                                 </div>
                                                 <?= htmlspecialchars($prescription['patient_name']) ?>
                                             </div>
