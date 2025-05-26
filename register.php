@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $query = "INSERT INTO users (email, password) VALUES (?, ?)";
                 $stmt = $conn->prepare($query);
                 $stmt->bind_param('ss', $email, $hashed_password);
+                
                 if ($stmt->execute()) {
                     $_SESSION['message'] = "Registration successful! You can now log in.";
                     header("Location: index.php");

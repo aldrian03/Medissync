@@ -6,8 +6,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email']; 
     $password = $_POST['password']; 
     $remember = isset($_POST['remember']);
+    $recaptcha_response = $_POST['g-recaptcha-response'];
 
-    if (!empty($email) && !empty($password)) {
+    // Verify reCAPTCHA
+    $recaptcha_secret = "6LfUBBErAAAAAF611yhBH8HuxIOj_P9tjBOdQfb0"; 
+    $verify_response = file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret=' . $recaptcha_secret . '&response=' . $recaptcha_response);
+    $response_data = json_decode($verify_response);
+
+    if (!$response_data->success) {
+        $error = "Please complete the reCAPTCHA verification.";
+    } else if (!empty($email) && !empty($password)) {
         // Query to check if the user exists in the database
         $query = "SELECT * FROM users WHERE email = ?";
         $stmt = $conn->prepare($query);
@@ -47,6 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Add reCAPTCHA script -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         :root {
             --primary-color: #439b7b;
@@ -280,6 +290,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 display: none;
             }
         }
+
+        /* Add styles for reCAPTCHA */
+        .g-recaptcha {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -302,6 +319,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </label>
                     <a href="#">Forgot password?</a>
                 </div>
+
+                <!-- Update the reCAPTCHA div with your actual Site Key -->
+                <div class="g-recaptcha" data-sitekey="6LfUBBErAAAAAArWjou2gh_5OiZ3u0cqLFPWDryr"></div>
 
                 <button type="submit">Sign in</button>
             </form>
