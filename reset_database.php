@@ -13,7 +13,7 @@ try {
     }
     
     // Read and execute SQL file
-    $sql = file_get_contents('update_database.sql');
+    $sql = file_get_contents('reset_database.sql');
     
     // Execute multi query
     if ($conn->multi_query($sql)) {
@@ -29,7 +29,7 @@ try {
         throw new Exception("Error executing SQL: " . $conn->error);
     }
     
-    echo "Database setup completed successfully!";
+    echo "Database has been reset to its original state!";
     
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage();

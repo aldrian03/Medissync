@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Login - Medisync</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Add reCAPTCHA script -->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
@@ -296,6 +296,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             margin: 20px 0;
             display: flex;
             justify-content: center;
+        }
+
+        .role-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .role-selector select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            font-size: 14px;
+            width: 200px;
+            background: var(--background-color);
+        }
+        
+        .role-selector select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 155, 123, 0.1);
         }
     </style>
 </head>
